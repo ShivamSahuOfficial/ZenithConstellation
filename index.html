@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zenith Sky Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-void:#0B1330;
+    --bg-deep:#050814;
+    --panel:#141C3D;
+    --panel-2:#101830;
+    --hairline:rgba(143,182,217,0.16);
+    --parchment:#F2E9D8;
+    --brass:#E8B34C;
+    --brass-dim:#B98A32;
+    --star-blue:#8FB6D9;
+    --ink-red:#C1544A;
+    --text-dim:rgba(242,233,216,0.58);
+    --radius:18px;
+  }
+
+  *{box-sizing:border-box;}
+
+  html,body{
+    margin:0;
+    min-height:100%;
+    background:
+      radial-gradient(ellipse 120% 90% at 50% -10%, #1b2a52 0%, var(--bg-void) 45%, var(--bg-deep) 100%);
+    color:var(--parchment);
+    font-family:'Inter',sans-serif;
+  }
+
+  body{
+    padding:48px 20px 80px;
+  }
+
+  .wrap{
+    max-width:880px;
+    margin:0 auto;
+  }
+
+  .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.18em;
+    text-transform:uppercase;
+    color:var(--brass);
+    margin:0 0 10px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:22px;height:1px;
+    background:var(--brass-dim);
+    display:inline-block;
+  }
+
+  h1{
+    font-family:'Spectral',serif;
+    font-weight:600;
+    font-size:clamp(30px,5vw,42px);
+    margin:0 0 8px;
+    letter-spacing:0.01em;
+  }
+
+  .lede{
+    color:var(--text-dim);
+    font-size:15px;
+    line-height:1.6;
+    max-width:56ch;
+    margin:0 0 36px;
+  }
+
+  .card{
+    background:linear-gradient(180deg, var(--panel) 0%, var(--panel-2) 100%);
+    border:1px solid var(--hairline);
+    border-radius:var(--radius);
+    box-shadow:0 30px 60px -30px rgba(0,0,0,0.6);
+    overflow:hidden;
+  }
+
+  .section{
+    padding:28px 30px;
+    border-bottom:1px solid var(--hairline);
+  }
+  .section:last-child{border-bottom:none;}
+
+  .section-label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--star-blue);
+    margin:0 0 18px;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:18px;
+  }
+
+  label{
+    display:block;
+    font-size:12px;
+    color:var(--text-dim);
+    margin-bottom:7px;
+    font-weight:500;
+  }
+
+  select,input[type="date"],input[type="time"],input[type="number"]{
+    width:100%;
+    background:rgba(5,8,20,0.55);
+    border:1px solid var(--hairline);
+    color:var(--parchment);
+    font-family:'JetBrains Mono',monospace;
+    font-size:14px;
+    padding:10px 12px;
+    border-radius:9px;
+    appearance:none;
+    -webkit-appearance:none;
+  }
+
+  select{
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0L5 6L10 0Z' fill='%238FB6D9'/></svg>");
+    background-repeat:no-repeat;
+    background-position:right 12px center;
+    padding-right:30px;
+  }
+
+  select:focus-visible,input:focus-visible{
+    outline:2px solid var(--brass);
+    outline-offset:1px;
+    border-color:var(--brass);
+  }
+
+  .custom-latlong{
+    display:none;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+    margin-top:18px;
+  }
+  .custom-latlong.show{display:grid;}
+
+  .resolved{
+    margin-top:18px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;
+    color:var(--star-blue);
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px 18px;
+  }
+  .resolved span b{color:var(--parchment);font-weight:500;}
+
+  /* ---- sky wheel ---- */
+  .wheel-section{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    padding-top:36px;
+  }
+  .wheel-holder{
+    width:100%;
+    max-width:360px;
+    margin:0 auto;
+  }
+  .wheel-caption{
+    margin-top:16px;
+    font-size:12.5px;
+    color:var(--text-dim);
+    text-align:center;
+    max-width:44ch;
+    line-height:1.6;
+  }
+
+  #zenithDot{
+    filter:drop-shadow(0 0 6px rgba(232,179,76,0.9));
+  }
+  @media (prefers-reduced-motion: no-preference){
+    #zenithDot{
+      animation:pulse 3.2s ease-in-out infinite;
+    }
+    .twinkle{
+      animation:twinkle 5s ease-in-out infinite;
+    }
+  }
+  @keyframes pulse{
+    0%,100%{ r:5; opacity:1; }
+    50%{ r:6.4; opacity:0.75; }
+  }
+  @keyframes twinkle{
+    0%,100%{ opacity:var(--base-op,0.5); }
+    50%{ opacity:calc(var(--base-op,0.5) * 0.35); }
+  }
+
+  #lstPointer{
+    transition:transform 0.5s ease;
+  }
+
+  /* ---- readout ---- */
+  .readout{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:22px 30px;
+  }
+  .stat-label{
+    font-size:11px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin-bottom:6px;
+  }
+  .stat-value{
+    font-family:'JetBrains Mono',monospace;
+    font-size:20px;
+    color:var(--parchment);
+  }
+  .stat-value.accent{color:var(--brass);}
+  .constellation-block{
+    grid-column:1 / -1;
+    border-top:1px solid var(--hairline);
+    padding-top:20px;
+    margin-top:2px;
+  }
+  .constellation-name{
+    font-family:'Spectral',serif;
+    font-weight:600;
+    font-size:28px;
+    color:var(--brass);
+    letter-spacing:0.02em;
+  }
+  .constellation-sub{
+    font-size:12.5px;
+    color:var(--text-dim);
+    margin-top:4px;
+  }
+
+  .note{
+    font-size:12px;
+    color:var(--text-dim);
+    line-height:1.6;
+    padding:18px 30px 26px;
+  }
+  .note b{color:var(--star-blue);font-weight:500;}
+
+  @media (max-width:520px){
+    .readout{grid-template-columns:1fr;}
+    .section{padding:22px 18px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">Local sky, right now</p>
+  <h1>Zenith Sky Explorer</h1>
+  <p class="lede">
+    Choose a place and a moment, and this finds the point directly overhead —
+    the zenith — and reads off its Right Ascension, Declination, and the
+    constellation currently sitting at the top of the sky.
+  </p>
+
+  <div class="card">
+
+    <div class="section">
+      <p class="section-label">Where</p>
+      <div class="grid">
+        <div>
+          <label for="locationSelect">Location</label>
+          <select id="locationSelect">
+            <option value="Delhi">Delhi</option>
+            <option value="Mahoba">Mahoba</option>
+            <option value="Nainital">Nainital</option>
+            <option value="Mussoorie">Mussoorie</option>
+            <option value="Rishikesh">Rishikesh</option>
+            <option value="Kota">Kota</option>
+            <option value="custom">Custom (lat / long)</option>
+          </select>
+        </div>
+        <div>
+          <label for="tzInput">Timezone offset (hours from UTC)</label>
+          <input type="number" id="tzInput" value="5.5" step="0.25" min="-14" max="14">
+        </div>
+      </div>
+
+      <div class="custom-latlong" id="customLatLong">
+        <div>
+          <label for="latInput">Latitude (°N positive)</label>
+          <input type="number" id="latInput" value="28.6139" step="0.0001" min="-90" max="90">
+        </div>
+        <div>
+          <label for="lonInput">Longitude (°E positive)</label>
+          <input type="number" id="lonInput" value="77.2090" step="0.0001" min="-180" max="180">
+        </div>
+      </div>
+
+      <p class="resolved" id="resolvedLine"></p>
+    </div>
+
+    <div class="section">
+      <p class="section-label">When</p>
+      <div class="grid">
+        <div>
+          <label for="dateInput">Date</label>
+          <input type="date" id="dateInput">
+        </div>
+        <div>
+          <label for="timeInput">Time (local clock time)</label>
+          <input type="time" id="timeInput" step="1">
+        </div>
+      </div>
+    </div>
+
+    <div class="section wheel-section">
+      <p class="section-label" style="align-self:flex-start;">Overhead</p>
+      <div class="wheel-holder">
+        <svg id="skyWheel" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Diagram of the sky dome with the zenith at center and a sidereal hour ring">
+          <defs>
+            <radialGradient id="domeGrad" cx="50%" cy="42%" r="75%">
+              <stop offset="0%" stop-color="#1c2b57"/>
+              <stop offset="100%" stop-color="#0a1230"/>
+            </radialGradient>
+          </defs>
+
+          <circle cx="200" cy="200" r="188" fill="url(#domeGrad)" stroke="var(--hairline)" stroke-width="1"/>
+
+          <!-- starfield -->
+          <g id="starfield" fill="#F2E9D8"></g>
+
+          <!-- horizon ring -->
+          <circle cx="200" cy="200" r="185" fill="none" stroke="rgba(143,182,217,0.25)" stroke-width="1"/>
+          <!-- altitude guide ring -->
+          <circle cx="200" cy="200" r="123" fill="none" stroke="rgba(143,182,217,0.12)" stroke-width="1"/>
+          <circle cx="200" cy="200" r="61" fill="none" stroke="rgba(143,182,217,0.12)" stroke-width="1"/>
+
+          <!-- hour ring ticks -->
+          <g id="hourTicks" stroke="rgba(143,182,217,0.35)" stroke-width="1"></g>
+
+          <!-- hour labels -->
+          <text x="200" y="26" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--star-blue)">0h</text>
+          <text x="374" y="204" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--star-blue)">6h</text>
+          <text x="200" y="382" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--star-blue)">12h</text>
+          <text x="26" y="204" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--star-blue)">18h</text>
+
+          <!-- LST pointer -->
+          <g id="lstPointer" transform="rotate(0 200 200)">
+            <line x1="200" y1="200" x2="200" y2="30" stroke="var(--brass)" stroke-width="1.5" opacity="0.85"/>
+            <circle cx="200" cy="30" r="3.5" fill="var(--brass)"/>
+          </g>
+
+          <!-- zenith -->
+          <circle id="zenithDot" cx="200" cy="200" r="5" fill="var(--brass)"/>
+          <circle cx="200" cy="200" r="10" fill="none" stroke="var(--brass)" stroke-width="1" opacity="0.4"/>
+
+          <text id="constLabel" x="200" y="235" text-anchor="middle" font-family="Spectral, serif" font-weight="600" font-size="17" fill="var(--brass)">—</text>
+          <text x="200" y="182" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10" letter-spacing="2" fill="var(--star-blue)">ZENITH</text>
+        </svg>
+      </div>
+      <p class="wheel-caption">
+        The brass marker on the outer ring shows where 0h–18h of Right
+        Ascension currently sit; it points toward the zenith's position in
+        Local Sidereal Time.
+      </p>
+    </div>
+
+    <div class="section">
+      <p class="section-label">Readout</p>
+      <div class="readout">
+        <div>
+          <div class="stat-label">Right Ascension</div>
+          <div class="stat-value accent" id="raOut">—</div>
+        </div>
+        <div>
+          <div class="stat-label">Declination</div>
+          <div class="stat-value accent" id="decOut">—</div>
+        </div>
+        <div>
+          <div class="stat-label">Local Sidereal Time</div>
+          <div class="stat-value" id="lstOut">—</div>
+        </div>
+        <div>
+          <div class="stat-label">Coordinates used</div>
+          <div class="stat-value" id="coordOut" style="font-size:14px;">—</div>
+        </div>
+        <div class="constellation-block">
+          <div class="stat-label">Constellation overhead</div>
+          <div class="constellation-name" id="constOut">—</div>
+          <div class="constellation-sub" id="constSubOut"></div>
+        </div>
+      </div>
+    </div>
+
+    <p class="note">
+      <b>On accuracy:</b> the zenith's coordinates (RA = Local Sidereal Time,
+      Dec = latitude) are exact for the date, time and location entered.
+      The constellation shown is found by nearest-center matching against
+      the 88 constellations' approximate midpoints, not the official IAU
+      boundary polygons — reliable for most points, but it can occasionally
+      call it differently right at a constellation border.
+    </p>
+
+  </div>
+</div>
+
+<script>
+(function(){
+
+  var CITIES = {
+    Delhi:      { lat: 28.6139, lon: 77.2090 },
+    Mahoba:     { lat: 25.2913, lon: 79.8722 },
+    Nainital:   { lat: 29.3919, lon: 79.4542 },
+    Mussoorie:  { lat: 30.4598, lon: 78.0664 },
+    Rishikesh:  { lat: 30.0869, lon: 78.2676 },
+    Kota:       { lat: 25.2138, lon: 75.8648 }
+  };
+
+  // Approximate centers of the 88 IAU constellations (RA in decimal hours, Dec in decimal degrees).
+  // Simplified nearest-center reference points, not official boundary polygons.
+  var CONSTELLATIONS = [
+    ["Andromeda",0.80,37],["Antlia",10.27,-32],["Apus",16.13,-75],["Aquarius",22.30,-10],
+    ["Aquila",19.67,3],["Ara",17.38,-56],["Aries",2.64,20],["Auriga",6.05,42],
+    ["Bo\u00f6tes",14.71,31],["Caelum",4.70,-38],["Camelopardalis",6.00,69],["Cancer",8.60,20],
+    ["Canes Venatici",13.12,40],["Canis Major",6.83,-22],["Canis Minor",7.65,6],["Capricornus",21.00,-18],
+    ["Carina",8.70,-63],["Cassiopeia",1.30,62],["Centaurus",13.10,-47],["Cepheus",22.00,71],
+    ["Cetus",1.70,-8],["Chamaeleon",10.70,-79],["Circinus",14.58,-63],["Columba",5.86,-35],
+    ["Coma Berenices",12.78,23],["Corona Australis",18.64,-41],["Corona Borealis",15.83,32],
+    ["Corvus",12.44,-18],["Crater",11.40,-16],["Crux",12.44,-60],["Cygnus",20.62,45],
+    ["Delphinus",20.69,12],["Dorado",5.23,-60],["Draco",17.00,65],["Equuleus",21.19,8],
+    ["Eridanus",3.50,-29],["Fornax",2.80,-32],["Gemini",7.07,23],["Grus",22.45,-46],
+    ["Hercules",17.39,33],["Horologium",3.28,-53],["Hydra",11.62,-13],["Hydrus",2.30,-70],
+    ["Indus",21.87,-58],["Lacerta",22.46,46],["Leo",10.67,13],["Leo Minor",10.24,32],
+    ["Lepus",5.57,-19],["Libra",15.20,-15],["Lupus",15.30,-42],["Lynx",8.05,47],
+    ["Lyra",18.87,37],["Mensa",5.42,-77],["Microscopium",20.90,-36],["Monoceros",7.05,-3],
+    ["Musca",12.60,-70],["Norma",15.90,-51],["Octans",21.00,-83],["Ophiuchus",17.05,-8],
+    ["Orion",5.58,5],["Pavo",19.60,-65],["Pegasus",22.70,19],["Perseus",3.18,45],
+    ["Phoenix",0.93,-48],["Pictor",5.70,-53],["Pisces",0.60,13],["Piscis Austrinus",22.30,-30],
+    ["Puppis",7.30,-31],["Pyxis",8.95,-27],["Reticulum",3.92,-60],["Sagitta",19.65,19],
+    ["Sagittarius",19.10,-29],["Scorpius",16.90,-30],["Sculptor",0.44,-32],["Scutum",18.67,-10],
+    ["Serpens",16.00,6],["Sextans",10.27,-3],["Taurus",4.70,15],["Telescopium",19.33,-51],
+    ["Triangulum",2.22,32],["Triangulum Australe",16.08,-65],["Tucana",23.80,-65],
+    ["Ursa Major",11.30,50],["Ursa Minor",15.00,78],["Vela",9.60,-47],["Virgo",13.40,-4],
+    ["Volans",7.80,-69],["Vulpecula",20.22,24]
+  ];
+
+  var locationSelect = document.getElementById('locationSelect');
+  var customLatLong = document.getElementById('customLatLong');
+  var latInput = document.getElementById('latInput');
+  var lonInput = document.getElementById('lonInput');
+  var tzInput = document.getElementById('tzInput');
+  var dateInput = document.getElementById('dateInput');
+  var timeInput = document.getElementById('timeInput');
+  var resolvedLine = document.getElementById('resolvedLine');
+  var raOut = document.getElementById('raOut');
+  var decOut = document.getElementById('decOut');
+  var lstOut = document.getElementById('lstOut');
+  var coordOut = document.getElementById('coordOut');
+  var constOut = document.getElementById('constOut');
+  var constSubOut = document.getElementById('constSubOut');
+  var constLabel = document.getElementById('constLabel');
+  var lstPointer = document.getElementById('lstPointer');
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  function formatHMS(hrs){
+    hrs = ((hrs % 24) + 24) % 24;
+    var h = Math.floor(hrs);
+    var mFull = (hrs - h) * 60;
+    var m = Math.floor(mFull);
+    var s = Math.round((mFull - m) * 60);
+    if (s === 60){ s = 0; m += 1; }
+    if (m === 60){ m = 0; h = (h + 1) % 24; }
+    return pad(h) + 'h ' + pad(m) + 'm ' + pad(s) + 's';
+  }
+
+  function formatDMS(deg){
+    var sign = deg < 0 ? '\u2212' : '+';
+    var abs = Math.abs(deg);
+    var d = Math.floor(abs);
+    var mFull = (abs - d) * 60;
+    var m = Math.floor(mFull);
+    var s = Math.round((mFull - m) * 60);
+    if (s === 60){ s = 0; m += 1; }
+    if (m === 60){ m = 0; d += 1; }
+    return sign + pad(d) + '\u00b0 ' + pad(m) + "' " + pad(s) + '"';
+  }
+
+  function computeJD_UTC(year, month, day, hour, minute, second, tzOffsetHours){
+    var Y = year, M = month;
+    if (M <= 2){ Y -= 1; M += 12; }
+    var A = Math.floor(Y / 100);
+    var B = 2 - A + Math.floor(A / 4);
+    var dayFrac = day + (hour + minute/60 + second/3600 - tzOffsetHours) / 24;
+    return Math.floor(365.25 * (Y + 4716)) + Math.floor(30.6001 * (M + 1)) + dayFrac + B - 1524.5;
+  }
+
+  function gmstHours(JD){
+    var T = (JD - 2451545.0) / 36525;
+    var gmstDeg = 280.46061837 + 360.98564736629 * (JD - 2451545.0)
+                  + 0.000387933 * T * T - (T * T * T) / 38710000;
+    gmstDeg = ((gmstDeg % 360) + 360) % 360;
+    return gmstDeg / 15;
+  }
+
+  function nearestConstellation(raH, decD){
+    var raRad = raH * 15 * Math.PI / 180;
+    var decRad = decD * Math.PI / 180;
+    var best = null, bestSep = Infinity;
+    for (var i = 0; i < CONSTELLATIONS.length; i++){
+      var c = CONSTELLATIONS[i];
+      var cRa = c[1] * 15 * Math.PI / 180;
+      var cDec = c[2] * Math.PI / 180;
+      var cosd = Math.sin(decRad)*Math.sin(cDec) + Math.cos(decRad)*Math.cos(cDec)*Math.cos(raRad - cRa);
+      cosd = Math.min(1, Math.max(-1, cosd));
+      var sep = Math.acos(cosd) * 180 / Math.PI;
+      if (sep < bestSep){ bestSep = sep; best = c; }
+    }
+    return { name: best[0], sep: bestSep };
+  }
+
+  function buildStarfield(){
+    var g = document.getElementById('starfield');
+    var seeded = [
+      [60,80,1.2],[95,140,0.8],[140,50,1],[180,100,0.6],[230,70,1.3],[280,120,0.9],
+      [320,90,0.7],[340,160,1.1],[70,220,0.9],[110,280,1.2],[60,320,0.8],[150,340,1],
+      [200,350,0.7],[250,330,1.1],[300,300,0.9],[330,260,1.3],[350,220,0.8],[40,180,1],
+      [190,60,0.8],[260,45,1],[310,180,0.6],[120,190,0.9],[280,220,0.7],[210,290,1.2],
+      [160,240,0.8],[90,100,1],[240,160,0.9],[130,320,0.7],[360,150,1],[50,260,0.9]
+    ];
+    seeded.forEach(function(p, i){
+      var el = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      el.setAttribute('cx', p[0]);
+      el.setAttribute('cy', p[1]);
+      el.setAttribute('r', p[2]);
+      var op = (0.3 + (i % 5) * 0.12).toFixed(2);
+      el.setAttribute('opacity', op);
+      el.classList.add('twinkle');
+      el.style.setProperty('--base-op', op);
+      el.style.animationDelay = (i * 0.37) + 's';
+      g.appendChild(el);
+    });
+  }
+
+  function buildHourTicks(){
+    var g = document.getElementById('hourTicks');
+    for (var h = 0; h < 24; h++){
+      var angle = (h / 24) * 360 * Math.PI / 180;
+      var long = (h % 6 === 0);
+      var rOuter = 185;
+      var rInner = long ? 170 : 178;
+      var x1 = 200 + rOuter * Math.sin(angle);
+      var y1 = 200 - rOuter * Math.cos(angle);
+      var x2 = 200 + rInner * Math.sin(angle);
+      var y2 = 200 - rInner * Math.cos(angle);
+      var line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1', x1.toFixed(2));
+      line.setAttribute('y1', y1.toFixed(2));
+      line.setAttribute('x2', x2.toFixed(2));
+      line.setAttribute('y2', y2.toFixed(2));
+      if (long) line.setAttribute('stroke-width', '1.6');
+      g.appendChild(line);
+    }
+  }
+
+  function setDefaultDateTime(){
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = pad(now.getMonth() + 1);
+    var d = pad(now.getDate());
+    dateInput.value = y + '-' + m + '-' + d;
+    timeInput.value = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+  }
+
+  function currentLatLon(){
+    var loc = locationSelect.value;
+    if (loc === 'custom'){
+      return { lat: parseFloat(latInput.value), lon: parseFloat(lonInput.value) };
+    }
+    return CITIES[loc];
+  }
+
+  function onLocationChange(){
+    var loc = locationSelect.value;
+    if (loc === 'custom'){
+      customLatLong.classList.add('show');
+    } else {
+      customLatLong.classList.remove('show');
+      var c = CITIES[loc];
+      latInput.value = c.lat;
+      lonInput.value = c.lon;
+      tzInput.value = 5.5;
+    }
+    recompute();
+  }
+
+  function recompute(){
+    var pos = currentLatLon();
+    if (!pos || isNaN(pos.lat) || isNaN(pos.lon) || !dateInput.value || !timeInput.value){
+      return;
+    }
+    var lat = pos.lat, lon = pos.lon;
+    var tz = parseFloat(tzInput.value) || 0;
+
+    var dateParts = dateInput.value.split('-').map(Number);
+    var timeParts = timeInput.value.split(':').map(Number);
+    var year = dateParts[0], month = dateParts[1], day = dateParts[2];
+    var hour = timeParts[0] || 0, minute = timeParts[1] || 0, second = timeParts[2] || 0;
+
+    var JD = computeJD_UTC(year, month, day, hour, minute, second, tz);
+    var gmst = gmstHours(JD);
+    var lstH = ((gmst + lon / 15) % 24 + 24) % 24;
+
+    var raH = lstH;
+    var decD = lat;
+
+    resolvedLine.innerHTML = '<span>Using <b>' + lat.toFixed(4) + '\u00b0' + (lat>=0?'N':'S') +
+      ', ' + Math.abs(lon).toFixed(4) + '\u00b0' + (lon>=0?'E':'W') + '</b></span>' +
+      '<span>UTC offset <b>' + (tz>=0?'+':'') + tz + 'h</b></span>';
+
+    raOut.textContent = formatHMS(raH);
+    decOut.textContent = formatDMS(decD);
+    lstOut.textContent = pad(Math.floor(lstH)) + ':' + pad(Math.floor((lstH%1)*60)) + ':' + pad(Math.round((((lstH%1)*60)%1)*60));
+    coordOut.textContent = lat.toFixed(2) + '\u00b0, ' + lon.toFixed(2) + '\u00b0';
+
+    if (Math.abs(lat) >= 89.9){
+      constOut.textContent = 'Celestial pole';
+      constSubOut.textContent = 'Right Ascension is undefined directly at the pole.';
+      constLabel.textContent = 'POLE';
+    } else {
+      var result = nearestConstellation(raH, decD);
+      constOut.textContent = result.name;
+      constSubOut.textContent = 'nearest-center match, ' + result.sep.toFixed(1) + '\u00b0 from reference point';
+      constLabel.textContent = result.name.length > 14 ? result.name.slice(0,13) + '\u2026' : result.name;
+    }
+
+    var angle = (lstH / 24) * 360;
+    lstPointer.setAttribute('transform', 'rotate(' + angle.toFixed(2) + ' 200 200)');
+  }
+
+  locationSelect.addEventListener('change', onLocationChange);
+  [latInput, lonInput, tzInput, dateInput, timeInput].forEach(function(el){
+    el.addEventListener('input', recompute);
+    el.addEventListener('change', recompute);
+  });
+
+  // init
+  buildStarfield();
+  buildHourTicks();
+  locationSelect.value = 'Delhi';
+  latInput.value = CITIES.Delhi.lat;
+  lonInput.value = CITIES.Delhi.lon;
+  setDefaultDateTime();
+  recompute();
+
+})();
+</script>
+</body>
+</html>
